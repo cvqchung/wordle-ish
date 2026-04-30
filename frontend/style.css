@@ -1,0 +1,139 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #fff;
+  color: #1a1a1b;
+  font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 500px;
+  margin: 0 auto;
+  min-height: 100svh;
+  padding-bottom: 24px;
+}
+
+/* Header */
+header {
+  width: 100%;
+  border-bottom: 1px solid #d3d6da;
+  padding: 12px 0;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: 0.1rem;
+  text-transform: uppercase;
+}
+
+/* Message bar */
+#message {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.message-text {
+  background: #1a1a1b;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.message-win  { background: #538d4e; }
+.message-lose { background: #3a3a3c; }
+
+/* Board */
+#board {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 24px;
+}
+
+.board-row {
+  display: flex;
+  gap: 5px;
+}
+
+.tile {
+  width: 62px;
+  height: 62px;
+  border: 2px solid #d3d6da;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.tile.active  { border-color: #999; }
+.tile.green   { background: #538d4e; border-color: #538d4e; color: #fff; }
+.tile.yellow  { background: #b59f3b; border-color: #b59f3b; color: #fff; }
+.tile.gray    { background: #3a3a3c; border-color: #3a3a3c; color: #fff; }
+
+/* Keyboard */
+#keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 0 8px;
+}
+
+.keyboard-row {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.key {
+  height: 58px;
+  min-width: 43px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: #d3d6da;
+  color: #1a1a1b;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.key.wide  { min-width: 65px; font-size: 0.75rem; }
+.key.green  { background: #538d4e; color: #fff; }
+.key.yellow { background: #b59f3b; color: #fff; }
+.key.gray   { background: #818384; color: #fff; }
+
+/* New game button */
+.new-game-btn {
+  margin-top: 20px;
+  padding: 12px 28px;
+  background: #538d4e;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
+}
+
+.new-game-btn:hover { filter: brightness(1.1); }

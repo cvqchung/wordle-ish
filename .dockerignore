@@ -1,0 +1,5 @@
+__pycache__
+*.pyc
+*.pyo
+.env
+backend/test_evaluate_guess.py

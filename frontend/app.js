@@ -1,4 +1,4 @@
-const API = "http://localhost:8000";
+const API = "";
 const MAX_GUESSES = 6;
 const WORD_LENGTH = 5;
 

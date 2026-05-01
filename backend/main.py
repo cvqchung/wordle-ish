@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from pathlib import Path
 import uuid
 
 from word_service import random_word, is_valid_word, evaluate_guess
@@ -8,14 +9,9 @@ from word_service import random_word, is_valid_word, evaluate_guess
 # Build backend
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 
-# In-memory session store: { session_id: { secret, guesses, status } }
+# In-memory session store: { session_id: { secret, guesses: [], status } }
 sessions: dict = {}
 
 MAX_GUESSES = 6
@@ -89,3 +85,7 @@ def get_state(session_id: str):
     if session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found")
     return format_state(session_id)
+
+
+# Catches all unmatched paths and serves static files
+app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="static")

@@ -332,4 +332,21 @@ document.addEventListener("keydown", (e) => {
   handleKey(e.key);
 });
 
+// ── Dark mode ─────────────────────────────────────────────────────────────────
+const darkBtn = document.getElementById("darkModeBtn");
+
+function applyDark(on) {
+  document.body.classList.toggle("dark", on);
+  darkBtn.textContent = on ? "☀︎" : "⏾";
+}
+
+darkBtn.addEventListener("click", () => {
+  const isDark = !document.body.classList.contains("dark");
+  localStorage.setItem("darkMode", isDark ? "1" : "0");
+  applyDark(isDark);
+  darkBtn.blur();
+});
+
+applyDark(localStorage.getItem("darkMode") === "1");
+
 init();

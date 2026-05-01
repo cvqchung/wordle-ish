@@ -13,8 +13,12 @@ let guesses = [];
 let currentGuess = "";
 let gameStatus = "in_progress";
 let letterStatuses = {};
+let isAnimating = false;
+let messageTimer = null;
 
 // ── DOM helpers ──────────────────────────────────────────────────────────────
+
+const getTile = (r, c) => document.getElementById(`tile-${r}-${c}`);
 
 function buildBoard() {
   // create 6 rows of 5 empty tiles, each addressable by tile-{row}-{col}
@@ -53,30 +57,53 @@ function buildKeyboard() {
   }
 }
 
-function renderCurrentGuess() {
+function renderCurrentGuess(popLastTile = false) {
   // update the active row as the user types, before submission
   const rowIndex = guesses.length;
+  const lastIdx = currentGuess.length - 1;
   for (let c = 0; c < WORD_LENGTH; c++) {
-    const tile = document.getElementById(`tile-${rowIndex}-${c}`);
+    const tile = getTile(rowIndex, c);
     tile.textContent = (currentGuess[c] || "").toUpperCase();
-    tile.className = "tile" + (currentGuess[c] ? " active" : "");
+    let cls = "tile";
+    if (currentGuess[c]) cls += " active";
+    // popLastTile triggers the scale-up pop on the newest tile
+    if (popLastTile && c === lastIdx) cls += " tile-pop";
+    tile.className = cls;
   }
 }
 
-function renderSubmittedRow(rowIndex, wordObj) {
+function flipTile(tile, delay, colorClass) {
+  // tile flip animation when submit word
+  return new Promise(resolve => {
+    setTimeout(() => {
+      tile.style.animation = "flip-in 0.25s ease-in forwards";  // squish to 0 (letter hidden)
+      tile.addEventListener("animationend", () => {
+        tile.className = `tile ${colorClass}`;                  // apply color class
+        tile.style.animation = "flip-out 0.25s ease-out forwards";  // unsquish to reveal
+        tile.addEventListener("animationend", () => {
+          tile.style.animation = "";
+          resolve();
+        }, { once: true });
+      }, { once: true });
+    }, delay);
+  });
+}
+
+async function renderSubmittedRow(rowIndex, wordObj, animate = true) {
   // color each tile green/yellow/gray based on feedback from the backend
-  for (let c = 0; c < WORD_LENGTH; c++) {
-    const tile = document.getElementById(`tile-${rowIndex}-${c}`);
+  const tiles = Array.from({ length: WORD_LENGTH }, (_, c) => getTile(rowIndex, c));
+  tiles.forEach((tile, c) => {
     tile.textContent = wordObj.word[c].toUpperCase();
-    tile.className = `tile ${wordObj.feedback[c]}`;
-  }
+    if (!animate) tile.className = `tile ${wordObj.feedback[c]}`;
+  });
+  // animate=false skips the flip when restoring a session
+  if (!animate) return;
+  await Promise.all(tiles.map((tile, c) => flipTile(tile, c * 300, wordObj.feedback[c])));
 }
 
 function renderAllGuesses() {
   // re-render all submitted rows; used when restoring a session on page load
-  for (let i = 0; i < guesses.length; i++) {
-    renderSubmittedRow(i, guesses[i]);
-  }
+  guesses.forEach((g, i) => renderSubmittedRow(i, g, false));
 }
 
 function updateKeyboard() {
@@ -88,14 +115,56 @@ function updateKeyboard() {
   }
 }
 
-function showMessage(text, type = "") {
+function showMessage(text, type = "", autoDismiss = true) {
   // type maps to a CSS class: "win" → message-win, "lose" → message-lose
+  clearTimeout(messageTimer);
   const el = document.getElementById("message");
-  el.innerHTML = `<span class="message-text ${type ? "message-" + type : ""}">${text}</span>`;
+  const span = document.createElement("span");
+  span.className = "message-text " + (autoDismiss ? "transient" : "persist") + (type ? ` message-${type}` : "");
+  span.textContent = text;
+  el.innerHTML = "";
+  el.appendChild(span);
+  // autoDismiss fades and clears the toast after 1.8s
+  if (autoDismiss) {
+    messageTimer = setTimeout(() => { el.innerHTML = ""; }, 1800);
+  }
 }
 
 function clearMessage() {
+  clearTimeout(messageTimer);
   document.getElementById("message").innerHTML = "";
+}
+
+function showEndState(state) {
+  // show result banner and new game button when game is over
+  if (state.status === "won") {
+    showMessage("You got it!", "win", false);
+  } else {
+    showMessage(`The word was ${state.word.toUpperCase()}`, "lose", false);
+  }
+  showNewGameButton();
+}
+
+function launchConfetti() {
+  // confetti streams from both bottom corners
+  const end = Date.now() + 2000;
+  const frame = () => {
+    confetti({ particleCount: 4, angle: 60,  spread: 55, origin: { x: 0, y: 0.75 } });
+    confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1, y: 0.75 } });
+    if (Date.now() < end) requestAnimationFrame(frame);
+  };
+  frame();
+}
+
+function playWinDance(rowIndex) {
+  // each tile bounces up then settles, staggered 100ms left to right
+  for (let c = 0; c < WORD_LENGTH; c++) {
+    const tile = getTile(rowIndex, c);
+    setTimeout(() => {
+      tile.style.animation = "tile-dance 0.6s ease";
+      tile.addEventListener("animationend", () => { tile.style.animation = ""; }, { once: true });
+    }, c * 100);
+  }
 }
 
 function showNewGameButton() {
@@ -113,7 +182,7 @@ function removeNewGameButton() {
   document.querySelector(".new-game-btn")?.remove();
 }
 
-// ── Keyboard: Letter status tracking ───────────────────────────────────────────────────
+// ── Keyboard: Letter status tracking ─────────────────────────────────────────
 
 // green > yellow > gray: a letter's color should only ever upgrade
 const STATUS_PRIORITY = { green: 3, yellow: 2, gray: 1 };
@@ -139,6 +208,7 @@ async function startGame() {
   currentGuess = "";
   gameStatus = "in_progress";
   letterStatuses = {};
+  isAnimating = false;
 
   // build UI immediately so the board shows before the API responds
   buildBoard();
@@ -152,7 +222,7 @@ async function startGame() {
 }
 
 async function handleKey(key) {
-  if (gameStatus !== "in_progress") return;
+  if (gameStatus !== "in_progress" || isAnimating) return;
 
   // remove letter from guess
   if (key === "Backspace") {
@@ -176,7 +246,7 @@ async function handleKey(key) {
   if (/^[a-zA-Z]$/.test(key) && currentGuess.length < WORD_LENGTH) {
     currentGuess += key.toLowerCase();
     clearMessage();
-    renderCurrentGuess();
+    renderCurrentGuess(true);
   }
 }
 
@@ -205,19 +275,26 @@ async function submitGuess() {
   gameStatus = state.status;
   currentGuess = "";
 
-  const lastGuess = guesses[guesses.length - 1];
-  renderSubmittedRow(guesses.length - 1, lastGuess);
+  const rowIndex = guesses.length - 1;
+  const lastGuess = guesses[rowIndex];
+
+  isAnimating = true; // block input during flip, then unlock
+  try {
+    await renderSubmittedRow(rowIndex, lastGuess, true);
+  } finally {
+    isAnimating = false;
+  }
+
+  // update keyboard colors
   updateLetterStatuses(lastGuess);
   updateKeyboard();
 
-  // show result banner and new game button if game ended
+  // handle wins
   if (gameStatus === "won") {
-    showMessage("You got it!", "win");
-    showNewGameButton();
-  } else if (gameStatus === "lost") {
-    showMessage(`The word was ${state.word.toUpperCase()}`, "lose");
-    showNewGameButton();
+    playWinDance(rowIndex);
+    launchConfetti();
   }
+  if (gameStatus !== "in_progress") showEndState(state);
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────────
@@ -241,13 +318,7 @@ async function init() {
       for (const g of guesses) updateLetterStatuses(g);
       updateKeyboard();
 
-      if (gameStatus === "won") {
-        showMessage("You got it!", "win");
-        showNewGameButton();
-      } else if (gameStatus === "lost") {
-        showMessage(`The word was ${state.word.toUpperCase()}`, "lose");
-        showNewGameButton();
-      }
+      if (gameStatus !== "in_progress") showEndState(state);
       return;
     } catch {
       // session gone (server restarted), start fresh

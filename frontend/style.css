@@ -15,6 +15,7 @@ body {
   margin: 0 auto;
   min-height: 100svh;
   padding-bottom: 24px;
+  position: relative;
 }
 
 /* Header */
@@ -34,13 +35,28 @@ h1 {
   text-transform: uppercase;
 }
 
-/* Message bar */
+/* Toast — overlays the board, takes no layout space */
 #message {
-  min-height: 36px;
+  position: absolute;
+  top: 78px;
+  left: 0;
+  right: 0;
   display: flex;
-  align-items: center;
   justify-content: center;
-  margin-bottom: 8px;
+  z-index: 100;
+  pointer-events: none;
+}
+
+@keyframes toast-transient {
+  0%   { opacity: 0; transform: translateY(-6px); }
+  12%  { opacity: 1; transform: translateY(0); }
+  72%  { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-6px); }
+}
+
+@keyframes toast-appear {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .message-text {
@@ -51,6 +67,9 @@ h1 {
   font-size: 0.85rem;
   font-weight: 700;
 }
+
+.message-text.transient { animation: toast-transient 1.8s ease forwards; }
+.message-text.persist   { animation: toast-appear   0.2s ease forwards; }
 
 .message-win  { background: #538d4e; }
 .message-lose { background: #3a3a3c; }
@@ -66,6 +85,32 @@ h1 {
 .board-row {
   display: flex;
   gap: 5px;
+}
+
+/* Tile animations */
+@keyframes tile-pop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+@keyframes flip-in {
+  from { transform: scaleY(1); }
+  to   { transform: scaleY(0); }
+}
+
+@keyframes flip-out {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+
+@keyframes tile-dance {
+  0%   { transform: translateY(0); }
+  35%  { transform: translateY(-20px); }
+  60%  { transform: translateY(4px); }
+  80%  { transform: translateY(-10px); }
+  92%  { transform: translateY(2px); }
+  100% { transform: translateY(0); }
 }
 
 .tile {
@@ -84,7 +129,9 @@ h1 {
 .tile.active  { border-color: #999; }
 .tile.green   { background: #538d4e; border-color: #538d4e; color: #fff; }
 .tile.yellow  { background: #b59f3b; border-color: #b59f3b; color: #fff; }
-.tile.gray    { background: #3a3a3c; border-color: #3a3a3c; color: #fff; }
+.tile.gray    { background: #818384; border-color: #818384; color: #fff; }
+
+.tile.tile-pop { animation: tile-pop 0.08s ease; }
 
 /* Keyboard */
 #keyboard {

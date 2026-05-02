@@ -17,6 +17,22 @@
 - **Backend**: Python, FastAPI, Uvicorn
 - **Testing**: pytest
 
+#### Session schema (in-memory)
+ ```
+{
+  session_id: uuid,
+  secret: str,          # never exposed until game over
+  status: "in_progress" | "won" | "lost",
+  guesses: [
+    {
+      word: str,
+      feedback: ["green" | "yellow" | "gray", ...]  # one per letter
+    },
+  ]
+}
+```
+Each game session is stored **server**-side only. The secret word is never sent to the client while the game is in progress. The **client** only gets the `guesses` array.
+
 ----
 
 ### Running locally
@@ -36,3 +52,9 @@ pip install pytest
 cd backend
 pytest test_evaluate_guess.py -v
 ```
+
+The feedback function (`evaluate_guess`) determines whether each letter is green, yellow, or gray, so it's a critical chunk of the game's logic and where the unit tests focus.
+
+Cases covered:
+- Basic feedback: all green, all gray, all yellow, mixed
+- Duplicate letters: in guess not secret, in secret not guess, in both
